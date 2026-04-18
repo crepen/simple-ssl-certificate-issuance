@@ -1,77 +1,79 @@
-# SSL 인증서 발급 도구
+# SSL Certificate Issuance Tool
 
-acme.sh를 이용해 ZeroSSL에서 DNS TXT 방식으로 SSL 인증서를 발급하는 셸 스크립트입니다.
-Linux 및 Docker 컨테이너 환경에서 별도의 패키지 설치 없이 동작합니다.
+A shell script for issuing SSL certificates from ZeroSSL using DNS TXT challenge via acme.sh.
+Works on Linux and Docker container environments without any additional package installation.
 
-## 특징
+[한국어](README.ko.md)
 
-- POSIX sh 호환 (bash 불필요, dash 환경 포함)
-- `curl` / `wget` 미설치 시 패키지 매니저로 자동 설치
-- acme.sh 자동 설치 (cron 없이 강제 설치)
-- ZeroSSL 계정 자동 등록
-- 와일드카드 도메인 지원 (`*.example.com`)
-- TXT 챌린지 발급과 인증서 발급을 단계별로 분리 실행
-- 발급된 인증서를 도메인별 디렉토리에 저장
+## Features
 
-## 요구사항
+- POSIX sh compatible (no bash required, works with dash)
+- Automatically installs `curl` / `wget` via package manager if missing
+- Automatically installs acme.sh (force install, no cron)
+- Automatically registers ZeroSSL account
+- Wildcard domain support (`*.example.com`)
+- TXT challenge issuance and certificate issuance run as separate steps
+- Certificates saved in per-domain subdirectories
 
-- `sh` (POSIX 호환 셸)
-- `curl` 또는 `wget` — 없을 경우 아래 패키지 매니저 중 하나가 있으면 자동 설치됩니다
+## Requirements
 
-| 패키지 매니저 | 대상 배포판 |
-|--------------|------------|
+- `sh` (POSIX-compatible shell)
+- `curl` or `wget` — automatically installed if missing, provided one of the following package managers is available
+
+| Package Manager | Target Distribution |
+|----------------|---------------------|
 | `apt-get` | Debian / Ubuntu |
 | `apk` | Alpine Linux |
-| `yum` | CentOS / RHEL (구버전) |
+| `yum` | CentOS / RHEL (legacy) |
 | `dnf` | Fedora / RHEL 8+ |
 | `zypper` | openSUSE |
 
-## 사용법
+## Usage
 
-### 로컬 파일로 실행
+### Run from local file
 
 ```sh
 sh ssl_cert.sh
 ```
 
-### 파일 저장 없이 바로 실행 (curl)
+### Run directly without saving (curl)
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/crepen/simple-ssl-certificate-issuance/main/ssl_cert.sh -o /tmp/ssl_cert.sh && sh /tmp/ssl_cert.sh
 ```
 
-### 파일 저장 없이 바로 실행 (wget)
+### Run directly without saving (wget)
 
 ```sh
 wget -qO /tmp/ssl_cert.sh https://raw.githubusercontent.com/crepen/simple-ssl-certificate-issuance/main/ssl_cert.sh && sh /tmp/ssl_cert.sh
 ```
 
-> 스크립트가 대화형 입력을 사용하므로 파이프(`| sh`) 방식은 동작하지 않습니다.
-> 위 방법처럼 임시 파일로 받아 실행하는 방식을 사용하세요.
+> The script uses interactive input, so piping (`| sh`) will not work.
+> Download to a temporary file first and run it as shown above.
 
-### 비대화형 (인수 직접 전달)
+### Non-interactive (pass arguments directly)
 
-메뉴 없이 명령어와 인수를 직접 전달하여 실행할 수 있습니다.
+You can skip the menu by passing a command and arguments directly.
 
 ```sh
-# 설정 저장
+# Save settings
 sh ssl_cert.sh config user@example.com /etc/ssl/certs
 
-# TXT 챌린지 발급
+# Issue TXT challenge
 sh ssl_cert.sh issue example.com
 sh ssl_cert.sh issue '*.example.com'
 
-# TXT 검증 및 인증서 발급
+# Verify TXT and issue certificate
 sh ssl_cert.sh verify example.com
 
-# 저장된 인증서 삭제
+# Delete saved certificate
 sh ssl_cert.sh delete example.com
 
-# 현재 설정 확인
+# Show current settings
 sh ssl_cert.sh show
 ```
 
-curl로 다운로드 후 바로 비대화형 실행:
+Download and run non-interactively with curl:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/crepen/simple-ssl-certificate-issuance/main/ssl_cert.sh -o /tmp/ssl_cert.sh
@@ -82,9 +84,9 @@ sh /tmp/ssl_cert.sh verify example.com
 
 ---
 
-### 대화형 메뉴
+### Interactive menu
 
-인수 없이 실행하면 메뉴가 표시됩니다.
+Running without arguments displays the menu.
 
 ```
 ============================================
@@ -99,81 +101,82 @@ sh /tmp/ssl_cert.sh verify example.com
 ============================================
 ```
 
-## 메뉴 설명
+## Menu Description
 
-### 1. 설정 (이메일, 인증서 저장 경로)
+### 1. Settings (email, certificate path)
 
-ZeroSSL 계정에 사용할 이메일 주소와 인증서를 저장할 기본 경로를 입력합니다.
-설정은 `~/.ssl_cert_config`에 저장되며 이후 실행 시 자동으로 불러옵니다.
+Enter the email address for your ZeroSSL account and the base path where certificates will be stored.
+Settings are saved to `~/.ssl_cert_config` and loaded automatically on subsequent runs.
 
-### 2. TXT 챌린지 문자열 발급
+### 2. Issue TXT challenge string
 
-도메인을 입력하면 ZeroSSL에서 DNS TXT 레코드 값을 발급합니다.
+Enter a domain to receive a DNS TXT record value from ZeroSSL.
 
-1. 도메인 입력 (예: `example.com` 또는 `*.example.com`)
-2. acme.sh 설치 여부 확인 및 자동 설치
-3. TXT 레코드 값 출력
+1. Enter domain (e.g. `example.com` or `*.example.com`)
+2. Check for acme.sh installation and install if missing
+3. Output TXT record value
 
-출력된 TXT 레코드를 DNS에 등록한 뒤 메뉴 3을 실행합니다.
+Add the displayed TXT record to your DNS, then run menu 3.
 
-> 이전 발급 시도의 캐시를 완전히 제거하고 새로운 챌린지를 생성합니다.
+> Always removes any previous challenge state and creates a fresh order.
+> If ZeroSSL reuses a cached DNS validation and issues the certificate immediately, the state is cleared and a new TXT challenge is generated automatically.
 
-### 3. TXT 검증 및 인증서 발급
+### 3. Verify TXT and issue certificate
 
-DNS에 TXT 레코드를 등록한 후 실행합니다.
+Run after adding the TXT record to your DNS.
 
-1. 도메인 입력 (메뉴 2에서 입력한 것과 동일)
-2. ZeroSSL에서 TXT 레코드 검증
-3. 인증서 발급 및 저장
+1. Enter domain (same as entered in menu 2)
+2. ZeroSSL verifies the TXT record
+3. Certificate issued and saved
 
-발급된 파일은 `<인증서 저장 경로>/<도메인>/` 하위에 저장됩니다.
+Issued files are saved under `<certificate path>/<domain>/`.
 
-| 파일 | 설명 |
-|------|------|
-| `cert.pem` | 인증서 |
-| `key.pem` | 개인 키 |
-| `fullchain.pem` | 풀체인 인증서 |
-| `ca.pem` | CA 인증서 |
+| File | Description |
+|------|-------------|
+| `cert.pem` | Certificate |
+| `key.pem` | Private key |
+| `fullchain.pem` | Full chain certificate |
+| `ca.pem` | CA certificate |
 
-### 4. 현재 설정 확인
+### 4. Show current settings
 
-저장된 이메일, 인증서 경로, acme.sh 설치 상태를 표시합니다.
+Displays the saved email, certificate path, and acme.sh installation status.
 
-### 5. 저장된 인증서 삭제
+### 5. Delete saved certificate
 
-저장된 도메인 목록을 번호로 표시하고, 선택한 도메인의 인증서 파일을 삭제합니다.
+Lists saved domain certificates by number and deletes the selected domain's certificate files.
 
-## 발급 절차
+## Issuance Flow
 
 ```
-[메뉴 1] 이메일 및 인증서 저장 경로 설정
+[Menu 1] Set email and certificate base path
     ↓
-[메뉴 2] 도메인 입력 → TXT 레코드 값 발급
+[Menu 2] Enter domain → Receive TXT record value
     ↓
-DNS에 TXT 레코드 등록 (수동)
+Add TXT record to DNS (manual)
     ↓
-DNS 전파 대기 (수 분 소요)
+Wait for DNS propagation (a few minutes)
     ↓
-[메뉴 3] 도메인 입력 → TXT 검증 → 인증서 발급 및 저장
+[Menu 3] Enter domain → Verify TXT → Issue and save certificate
 ```
 
-## 와일드카드 도메인
+## Wildcard Domains
 
-`*.example.com` 입력 시 `*.example.com`과 `example.com` 모두에 대한 인증서를 발급합니다.
-인증서는 `<저장 경로>/wildcard.example.com/` 디렉토리에 저장됩니다.
+Entering `*.example.com` issues a certificate covering both `*.example.com` and `example.com`.
+The certificate is saved under `<base path>/wildcard.example.com/`.
 
-## 설정 파일 위치
+## Configuration File Locations
 
-| 경로 | 내용 |
-|------|------|
-| `~/.ssl_cert_config` | 이메일, 인증서 저장 경로 |
-| `~/.acme.sh/` | acme.sh 설치 디렉토리 |
+| Path | Contents |
+|------|----------|
+| `~/.ssl_cert_config` | Email and certificate base path |
+| `~/.acme.sh/` | acme.sh installation directory |
 
-## 오류 대처
+## Troubleshooting
 
-### `retryafter=86400` 오류
+### `retryafter=86400` error
 
-ZeroSSL이 이전 실패한 검증 시도를 캐싱하여 24시간 재시도를 거부하는 경우입니다.
+ZeroSSL has cached a previous failed verification attempt and is refusing retries for 24 hours.
 
-- 메뉴 2를 다시 실행해 새로운 TXT 챌린지를 생성하고 DNS를 업데이트한 뒤 메뉴 3을 재시도합니다.
-- 또는 수 시간 후 메뉴 3을 재시도합니다.
+- Re-run menu 2 to generate a new TXT challenge, update DNS, then retry menu 3.
+- Alternatively, wait a few hours and retry menu 3.
