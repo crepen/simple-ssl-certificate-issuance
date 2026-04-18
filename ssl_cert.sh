@@ -2,7 +2,7 @@
 
 set -eu
 
-VERSION="1.0.4"
+VERSION="1.0.5"
 CONFIG_FILE="${HOME}/.ssl_cert_config"
 ACME_HOME="${HOME}/.acme.sh"
 ACME_BIN="${ACME_HOME}/acme.sh"
@@ -301,16 +301,23 @@ verify_and_issue() {
        grep -q "blank argument" "$renew_out" 2>/dev/null; then
         printf "\n"
         log_error "Le_OrderFinalize URL is missing (incomplete order state)."
-        log_warn "The previous TXT challenge order was not properly saved."
         log_warn "Run menu [2] again to generate a NEW TXT challenge, update DNS, then retry menu [3]."
         rm -f "$renew_out"
         return 1
     fi
 
-    if grep -qE "(Error|error|failed)" "$renew_out" 2>/dev/null && \
-       ! grep -q "Cert success" "$renew_out" 2>/dev/null; then
+    if grep -qE "(Cannot find DNS API hook|Please add the TXT record)" "$renew_out" 2>/dev/null; then
+        printf "\n"
+        log_error "DNS TXT record not verified. The TXT record may not be propagated yet."
+        log_warn "Make sure the TXT record is added to DNS, wait for propagation, then retry menu [3]."
+        log_warn "If the TXT value above has changed, update DNS with the new value first."
         rm -f "$renew_out"
-        log_error "Certificate renewal failed. Check the output above for details."
+        return 1
+    fi
+
+    if ! grep -q "Cert success" "$renew_out" 2>/dev/null; then
+        rm -f "$renew_out"
+        log_error "Certificate issuance did not complete. Check the output above for details."
         return 1
     fi
 
