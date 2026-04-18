@@ -135,7 +135,6 @@ check_install_acme() {
     # --force: reinstall, --no-cron: skip cron setup (for Docker environments)
     log_info "Installing acme.sh (force, no-cron)..."
     sh "$install_script" \
-        --install-online \
         --force \
         --no-cron \
         --email "${EMAIL}" \
