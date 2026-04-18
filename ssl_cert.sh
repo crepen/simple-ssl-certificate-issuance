@@ -67,6 +67,38 @@ configure_settings() {
     save_config
 }
 
+# --- ensure curl or wget is available, install if missing --------------------
+ensure_downloader() {
+    if command -v curl >/dev/null 2>&1 || command -v wget >/dev/null 2>&1; then
+        return 0
+    fi
+
+    log_warn "Neither curl nor wget found. Attempting to install curl..."
+
+    if command -v apt-get >/dev/null 2>&1; then
+        apt-get update -qq && apt-get install -y -qq curl
+    elif command -v apk >/dev/null 2>&1; then
+        apk add --no-cache curl
+    elif command -v yum >/dev/null 2>&1; then
+        yum install -y -q curl
+    elif command -v dnf >/dev/null 2>&1; then
+        dnf install -y -q curl
+    elif command -v zypper >/dev/null 2>&1; then
+        zypper install -y curl
+    else
+        log_error "No supported package manager found (apt-get, apk, yum, dnf, zypper)."
+        log_error "Please install curl or wget manually."
+        return 1
+    fi
+
+    if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
+        log_error "curl installation failed."
+        return 1
+    fi
+
+    log_info "curl installed successfully."
+}
+
 # --- acme.sh install check ---------------------------------------------------
 check_install_acme() {
     log_section "acme.sh Check"
@@ -79,14 +111,13 @@ check_install_acme() {
 
     log_warn "acme.sh not found. Starting installation..."
 
+    ensure_downloader || return 1
+
     downloader=""
     if command -v curl >/dev/null 2>&1; then
         downloader="curl"
     elif command -v wget >/dev/null 2>&1; then
         downloader="wget"
-    else
-        log_error "curl or wget is required."
-        return 1
     fi
 
     install_script=$(mktemp /tmp/acme_install.XXXXXX.sh)

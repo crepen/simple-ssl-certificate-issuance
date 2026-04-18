@@ -6,6 +6,7 @@ Linux 및 Docker 컨테이너 환경에서 별도의 패키지 설치 없이 동
 ## 특징
 
 - POSIX sh 호환 (bash 불필요, dash 환경 포함)
+- `curl` / `wget` 미설치 시 패키지 매니저로 자동 설치
 - acme.sh 자동 설치 (cron 없이 강제 설치)
 - ZeroSSL 계정 자동 등록
 - 와일드카드 도메인 지원 (`*.example.com`)
@@ -14,8 +15,16 @@ Linux 및 Docker 컨테이너 환경에서 별도의 패키지 설치 없이 동
 
 ## 요구사항
 
-- `curl` 또는 `wget` (acme.sh 설치에 사용)
 - `sh` (POSIX 호환 셸)
+- `curl` 또는 `wget` — 없을 경우 아래 패키지 매니저 중 하나가 있으면 자동 설치됩니다
+
+| 패키지 매니저 | 대상 배포판 |
+|--------------|------------|
+| `apt-get` | Debian / Ubuntu |
+| `apk` | Alpine Linux |
+| `yum` | CentOS / RHEL (구버전) |
+| `dnf` | Fedora / RHEL 8+ |
+| `zypper` | openSUSE |
 
 ## 사용법
 
