@@ -122,7 +122,8 @@ check_install_acme() {
         downloader="wget"
     fi
 
-    install_script=$(mktemp /tmp/acme_install.XXXXXX.sh)
+    install_dir=$(mktemp -d /tmp/acme_install.XXXXXX)
+    install_script="${install_dir}/acme.sh"
 
     log_info "Downloading acme.sh..."
     if [ "$downloader" = "curl" ]; then
@@ -144,7 +145,7 @@ check_install_acme() {
         --email "${EMAIL}" \
         2>&1
 
-    rm -f "$install_script"
+    rm -rf "$install_dir"
 
     if [ ! -f "$ACME_BIN" ]; then
         log_error "acme.sh installation failed."
