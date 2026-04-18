@@ -2,7 +2,7 @@
 
 set -eu
 
-VERSION="1.0.8"
+VERSION="1.0.7"
 CONFIG_FILE="${HOME}/.ssl_cert_config"
 ACME_HOME="${HOME}/.acme.sh"
 ACME_BIN="${ACME_HOME}/acme.sh"
