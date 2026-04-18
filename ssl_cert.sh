@@ -2,7 +2,7 @@
 
 set -eu
 
-VERSION="1.0.3"
+VERSION="1.0.4"
 CONFIG_FILE="${HOME}/.ssl_cert_config"
 ACME_HOME="${HOME}/.acme.sh"
 ACME_BIN="${ACME_HOME}/acme.sh"
@@ -293,6 +293,16 @@ verify_and_issue() {
         log_warn "Options:"
         log_warn "  1. Wait a few hours, then retry menu [3]"
         log_warn "  2. Run menu [2] again to generate a NEW TXT challenge, update DNS, then retry menu [3]"
+        rm -f "$renew_out"
+        return 1
+    fi
+
+    if grep -q "Le_OrderFinalize" "$renew_out" 2>/dev/null && \
+       grep -q "blank argument" "$renew_out" 2>/dev/null; then
+        printf "\n"
+        log_error "Le_OrderFinalize URL is missing (incomplete order state)."
+        log_warn "The previous TXT challenge order was not properly saved."
+        log_warn "Run menu [2] again to generate a NEW TXT challenge, update DNS, then retry menu [3]."
         rm -f "$renew_out"
         return 1
     fi
