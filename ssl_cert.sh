@@ -6,6 +6,7 @@ CONFIG_FILE="${HOME}/.ssl_cert_config"
 ACME_HOME="${HOME}/.acme.sh"
 ACME_BIN="${ACME_HOME}/acme.sh"
 ACME_SERVER="zerossl"
+DOMAIN=""
 
 # --- colors ------------------------------------------------------------------
 RED='\033[0;31m'
@@ -164,8 +165,10 @@ require_config() {
 
 # --- domain input and path resolution ----------------------------------------
 input_domain() {
-    printf "Domain (e.g. example.com or *.example.com): "
-    read -r DOMAIN
+    if [ -z "$DOMAIN" ]; then
+        printf "Domain (e.g. example.com or *.example.com): "
+        read -r DOMAIN
+    fi
     if [ -z "$DOMAIN" ]; then
         log_error "Domain is required."
         return 1
@@ -331,6 +334,19 @@ delete_cert() {
         return 1
     fi
 
+    # Non-interactive: domain provided as argument
+    if [ -n "$DOMAIN" ]; then
+        domain_safe=$(printf '%s' "$DOMAIN" | sed 's/\*/wildcard/g')
+        target_dir="${CERT_DIR}/${domain_safe}"
+        if [ ! -d "$target_dir" ]; then
+            log_error "Certificate not found: $target_dir"
+            return 1
+        fi
+        rm -rf "$target_dir"
+        log_info "Deleted: $target_dir"
+        return 0
+    fi
+
     # Collect subdirectories (each represents a domain)
     i=0
     for d in "$CERT_DIR"/*/; do
@@ -432,6 +448,76 @@ main_menu() {
     done
 }
 
+# --- non-interactive usage help ----------------------------------------------
+usage() {
+    printf "Usage: %s [command] [args]\n" "$0"
+    printf "\n"
+    printf "Commands:\n"
+    printf "  (no args)              Interactive menu\n"
+    printf "  config <email> <path>  Save email and certificate base path\n"
+    printf "  issue  <domain>        Issue TXT challenge string\n"
+    printf "  verify <domain>        Verify TXT and issue certificate\n"
+    printf "  delete <domain>        Delete saved certificate\n"
+    printf "  show                   Show current settings\n"
+    printf "\n"
+    printf "Examples:\n"
+    printf "  %s config user@example.com /etc/ssl/certs\n" "$0"
+    printf "  %s issue example.com\n" "$0"
+    printf "  %s issue '*.example.com'\n" "$0"
+    printf "  %s verify example.com\n" "$0"
+    printf "  %s delete example.com\n" "$0"
+}
+
 # --- entry point -------------------------------------------------------------
 load_config
-main_menu
+
+if [ $# -eq 0 ]; then
+    main_menu
+else
+    case "$1" in
+        config)
+            if [ $# -lt 3 ]; then
+                log_error "Usage: $0 config <email> <cert_dir>"
+                exit 1
+            fi
+            EMAIL="$2"
+            CERT_DIR="$3"
+            save_config
+            ;;
+        issue)
+            if [ $# -lt 2 ]; then
+                log_error "Usage: $0 issue <domain>"
+                exit 1
+            fi
+            DOMAIN="$2"
+            issue_txt_challenge
+            ;;
+        verify)
+            if [ $# -lt 2 ]; then
+                log_error "Usage: $0 verify <domain>"
+                exit 1
+            fi
+            DOMAIN="$2"
+            verify_and_issue
+            ;;
+        delete)
+            if [ $# -lt 2 ]; then
+                log_error "Usage: $0 delete <domain>"
+                exit 1
+            fi
+            DOMAIN="$2"
+            delete_cert
+            ;;
+        show)
+            show_config
+            ;;
+        help|--help|-h)
+            usage
+            ;;
+        *)
+            log_error "Unknown command: $1"
+            usage
+            exit 1
+            ;;
+    esac
+fi

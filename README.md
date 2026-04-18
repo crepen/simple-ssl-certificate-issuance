@@ -49,7 +49,42 @@ wget -qO /tmp/ssl_cert.sh https://raw.githubusercontent.com/crepen/simple-ssl-ce
 > 스크립트가 대화형 입력을 사용하므로 파이프(`| sh`) 방식은 동작하지 않습니다.
 > 위 방법처럼 임시 파일로 받아 실행하는 방식을 사용하세요.
 
-실행하면 메뉴가 표시됩니다.
+### 비대화형 (인수 직접 전달)
+
+메뉴 없이 명령어와 인수를 직접 전달하여 실행할 수 있습니다.
+
+```sh
+# 설정 저장
+sh ssl_cert.sh config user@example.com /etc/ssl/certs
+
+# TXT 챌린지 발급
+sh ssl_cert.sh issue example.com
+sh ssl_cert.sh issue '*.example.com'
+
+# TXT 검증 및 인증서 발급
+sh ssl_cert.sh verify example.com
+
+# 저장된 인증서 삭제
+sh ssl_cert.sh delete example.com
+
+# 현재 설정 확인
+sh ssl_cert.sh show
+```
+
+curl로 다운로드 후 바로 비대화형 실행:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/crepen/simple-ssl-certificate-issuance/main/ssl_cert.sh -o /tmp/ssl_cert.sh
+sh /tmp/ssl_cert.sh config user@example.com /etc/ssl/certs
+sh /tmp/ssl_cert.sh issue example.com
+sh /tmp/ssl_cert.sh verify example.com
+```
+
+---
+
+### 대화형 메뉴
+
+인수 없이 실행하면 메뉴가 표시됩니다.
 
 ```
 ============================================
