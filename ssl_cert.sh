@@ -2,7 +2,7 @@
 
 set -eu
 
-VERSION="1.0.6"
+VERSION="1.0.7"
 CONFIG_FILE="${HOME}/.ssl_cert_config"
 ACME_HOME="${HOME}/.acme.sh"
 ACME_BIN="${ACME_HOME}/acme.sh"
@@ -203,6 +203,23 @@ ensure_zerossl_account() {
     "$ACME_BIN" --register-account -m "${EMAIL}" --server "$ACME_SERVER" 2>&1 || true
 }
 
+# --- delete domain state and run a fresh --issue order -----------------------
+_issue_fresh_order() {
+    for _s in "_ecc" ""; do
+        rm -rf "${ACME_HOME}/${DOMAIN}${_s}"
+    done
+    : > "$acme_log"
+    # shellcheck disable=SC2046
+    "$ACME_BIN" \
+        --issue \
+        --dns dns_manual \
+        $(build_domain_flag) \
+        --server "$ACME_SERVER" \
+        --force \
+        --log "$acme_log" \
+        2>&1 || true
+}
+
 # --- issue TXT challenge string ----------------------------------------------
 issue_txt_challenge() {
     log_section "Issue TXT Challenge"
@@ -214,34 +231,21 @@ issue_txt_challenge() {
 
     mkdir -p "$DOMAIN_DIR"
 
-    # Remove stale acme.sh domain state to ensure Le_OrderFinalize and all
-    # order fields are freshly populated by a clean --issue run
-    for _suffix in "_ecc" ""; do
-        _state="${ACME_HOME}/${DOMAIN}${_suffix}"
-        if [ -d "$_state" ]; then
-            log_info "Removing stale domain state: $_state"
-            rm -rf "$_state"
-        fi
-    done
-
     log_info "Domain: $DOMAIN"
     log_info "Requesting DNS TXT challenge from ZeroSSL..."
     printf "\n"
 
     acme_log="${ACME_HOME}/acme.sh.log"
-    : > "$acme_log"
 
-    # --force: always create a fresh ACME order so the TXT value is always new
-    # dns_manual: built-in acme.sh provider for manual TXT DNS validation
-    # shellcheck disable=SC2046
-    "$ACME_BIN" \
-        --issue \
-        --dns dns_manual \
-        $(build_domain_flag) \
-        --server "$ACME_SERVER" \
-        --force \
-        --log "$acme_log" \
-        2>&1 || true
+    _issue_fresh_order
+    # If ZeroSSL reused a cached DNS validation and issued the cert immediately,
+    # delete the state and re-run to obtain a fresh TXT-only order.
+    if grep -q "Cert success" "$acme_log" 2>/dev/null; then
+        log_warn "Certificate was issued automatically (ZeroSSL reused cached DNS validation)."
+        log_warn "Generating a new TXT challenge order..."
+        printf "\n"
+        _issue_fresh_order
+    fi
 
     # Extract and display TXT record
     printf "\n"
