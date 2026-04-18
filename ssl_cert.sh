@@ -2,7 +2,7 @@
 
 set -eu
 
-VERSION="1.0.2"
+VERSION="1.0.3"
 CONFIG_FILE="${HOME}/.ssl_cert_config"
 ACME_HOME="${HOME}/.acme.sh"
 ACME_BIN="${ACME_HOME}/acme.sh"
@@ -137,13 +137,14 @@ check_install_acme() {
     chmod +x "$install_script"
 
     # --install: self-install to ACME_HOME, --no-cron: skip cron setup (for Docker environments)
+    # cd into install_dir so acme.sh can find itself via relative path during install
     log_info "Installing acme.sh (no-cron)..."
-    sh "$install_script" \
+    ( cd "$install_dir" && sh ./acme.sh \
         --install \
         --home "$ACME_HOME" \
         --no-cron \
         --email "${EMAIL}" \
-        2>&1
+        2>&1 )
 
     rm -rf "$install_dir"
 
