@@ -28,9 +28,26 @@ Linux 및 Docker 컨테이너 환경에서 별도의 패키지 설치 없이 동
 
 ## 사용법
 
+### 로컬 파일로 실행
+
 ```sh
 sh ssl_cert.sh
 ```
+
+### 파일 저장 없이 바로 실행 (curl)
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/crepen/simple-ssl-certificate-issuance/main/ssl_cert.sh -o /tmp/ssl_cert.sh && sh /tmp/ssl_cert.sh
+```
+
+### 파일 저장 없이 바로 실행 (wget)
+
+```sh
+wget -qO /tmp/ssl_cert.sh https://raw.githubusercontent.com/crepen/simple-ssl-certificate-issuance/main/ssl_cert.sh && sh /tmp/ssl_cert.sh
+```
+
+> 스크립트가 대화형 입력을 사용하므로 파이프(`| sh`) 방식은 동작하지 않습니다.
+> 위 방법처럼 임시 파일로 받아 실행하는 방식을 사용하세요.
 
 실행하면 메뉴가 표시됩니다.
 
