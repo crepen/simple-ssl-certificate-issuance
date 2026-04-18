@@ -2,6 +2,7 @@
 
 set -eu
 
+VERSION="1.0.1"
 CONFIG_FILE="${HOME}/.ssl_cert_config"
 ACME_HOME="${HOME}/.acme.sh"
 ACME_BIN="${ACME_HOME}/acme.sh"
@@ -123,19 +124,22 @@ check_install_acme() {
 
     install_script=$(mktemp /tmp/acme_install.XXXXXX.sh)
 
-    log_info "Downloading install script..."
+    log_info "Downloading acme.sh..."
     if [ "$downloader" = "curl" ]; then
-        curl -fsSL https://get.acme.sh -o "$install_script"
+        curl -fsSL https://raw.githubusercontent.com/acmesh-official/acme.sh/master/acme.sh \
+            -o "$install_script"
     else
-        wget -qO "$install_script" https://get.acme.sh
+        wget -qO "$install_script" \
+            https://raw.githubusercontent.com/acmesh-official/acme.sh/master/acme.sh
     fi
 
     chmod +x "$install_script"
 
-    # --force: reinstall, --no-cron: skip cron setup (for Docker environments)
-    log_info "Installing acme.sh (force, no-cron)..."
+    # --install: self-install to ACME_HOME, --no-cron: skip cron setup (for Docker environments)
+    log_info "Installing acme.sh (no-cron)..."
     sh "$install_script" \
-        --force \
+        --install \
+        --home "$ACME_HOME" \
         --no-cron \
         --email "${EMAIL}" \
         2>&1
@@ -419,6 +423,7 @@ main_menu() {
         printf "\n"
         printf "============================================\n"
         printf "  SSL Certificate Tool (ZeroSSL / TXT mode)\n"
+        printf "  version %s\n" "$VERSION"
         printf "============================================\n"
         printf "  1. Settings (email, certificate path)\n"
         printf "  2. Issue TXT challenge string\n"
@@ -449,6 +454,7 @@ main_menu() {
 
 # --- non-interactive usage help ----------------------------------------------
 usage() {
+    printf "SSL Certificate Tool (ZeroSSL / TXT mode) v%s\n" "$VERSION"
     printf "Usage: %s [command] [args]\n" "$0"
     printf "\n"
     printf "Commands:\n"
