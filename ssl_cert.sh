@@ -2,7 +2,7 @@
 
 set -eu
 
-VERSION="1.0.5"
+VERSION="1.0.6"
 CONFIG_FILE="${HOME}/.ssl_cert_config"
 ACME_HOME="${HOME}/.acme.sh"
 ACME_BIN="${ACME_HOME}/acme.sh"
@@ -277,51 +277,56 @@ verify_and_issue() {
     log_info "Verifying DNS TXT record and issuing certificate..."
     printf "\n"
 
-    renew_out=$(mktemp /tmp/acme_renew.XXXXXX)
+    issue_out=$(mktemp /tmp/acme_issue.XXXXXX)
 
+    # Use --issue (no --force) to resume the pending order saved by menu [2].
+    # --renew creates a new ACME order which clears Le_OrderFinalize before
+    # finalisation, causing a blank-argument curl error.
     # shellcheck disable=SC2046
     "$ACME_BIN" \
-        --renew \
+        --issue \
+        --dns dns_manual \
         $(build_domain_flag) \
-        > "$renew_out" 2>&1 || true
-    cat "$renew_out"
+        --server "$ACME_SERVER" \
+        > "$issue_out" 2>&1 || true
+    cat "$issue_out"
 
-    if grep -q "retryafter=86400" "$renew_out" 2>/dev/null; then
+    if grep -q "retryafter=86400" "$issue_out" 2>/dev/null; then
         printf "\n"
         log_error "ZeroSSL returned retry-after=86400 (24 hours)."
         log_warn "This is caused by previous failed verification attempts caching a negative DNS result."
         log_warn "Options:"
         log_warn "  1. Wait a few hours, then retry menu [3]"
         log_warn "  2. Run menu [2] again to generate a NEW TXT challenge, update DNS, then retry menu [3]"
-        rm -f "$renew_out"
+        rm -f "$issue_out"
         return 1
     fi
 
-    if grep -q "Le_OrderFinalize" "$renew_out" 2>/dev/null && \
-       grep -q "blank argument" "$renew_out" 2>/dev/null; then
+    if grep -q "Le_OrderFinalize" "$issue_out" 2>/dev/null && \
+       grep -q "blank argument" "$issue_out" 2>/dev/null; then
         printf "\n"
         log_error "Le_OrderFinalize URL is missing (incomplete order state)."
         log_warn "Run menu [2] again to generate a NEW TXT challenge, update DNS, then retry menu [3]."
-        rm -f "$renew_out"
+        rm -f "$issue_out"
         return 1
     fi
 
-    if grep -qE "(Cannot find DNS API hook|Please add the TXT record)" "$renew_out" 2>/dev/null; then
+    if grep -qE "(Cannot find DNS API hook|Please add the TXT record)" "$issue_out" 2>/dev/null; then
         printf "\n"
         log_error "DNS TXT record not verified. The TXT record may not be propagated yet."
         log_warn "Make sure the TXT record is added to DNS, wait for propagation, then retry menu [3]."
         log_warn "If the TXT value above has changed, update DNS with the new value first."
-        rm -f "$renew_out"
+        rm -f "$issue_out"
         return 1
     fi
 
-    if ! grep -q "Cert success" "$renew_out" 2>/dev/null; then
-        rm -f "$renew_out"
+    if ! grep -q "Cert success" "$issue_out" 2>/dev/null; then
+        rm -f "$issue_out"
         log_error "Certificate issuance did not complete. Check the output above for details."
         return 1
     fi
 
-    rm -f "$renew_out"
+    rm -f "$issue_out"
     printf "\n"
 
     mkdir -p "$DOMAIN_DIR"
